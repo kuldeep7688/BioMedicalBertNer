@@ -1,2 +1,2 @@
-# bert_ner
-Named Entity Recognition using BERT
+# Bio Medical Bert Named Entity Recognition 
+Named Entity Recognition for biomedical data using Scibert
