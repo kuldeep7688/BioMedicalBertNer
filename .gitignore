@@ -10,7 +10,6 @@ data/*
 *.tar
 *.tar.gz
 *.pkl
-*.json
 *.csv
 *.logs
 *.txt

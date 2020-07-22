@@ -335,7 +335,7 @@ def train_epoch(
 				tr_loss / (step + 1), label_map, preds, out_label_ids, give_lists=False
 			)
 			epoch_iterator.set_description(
-				f'Tr Iter: {step+1}| step_loss: {step_loss}| avg_tr_f1: {temp_results["f1"]}'
+				f'Tr Iter: {step+1}| step_loss: {step_loss: .3f}| avg_tr_f1: {temp_results["f1"]: .3f}'
 			)
 
 	epoch_loss = tr_loss / len(dataloader)
@@ -346,7 +346,7 @@ def train_epoch(
 		summary_writer.add_scaler("Precision_epoch/train", results["precision"])
 		summary_writer.add_scaler("Recall_epoch/train", results["recall"])
 
-	return epoch_loss, results
+	return results
 
 
 def eval_epoch(
@@ -393,7 +393,7 @@ def eval_epoch(
 					tr_loss / (step + 1), label_map, preds, out_label_ids, give_lists=False
 				)
 				epoch_iterator.set_description(
-					f'Tr Iter: {step+1}| step_loss: {step_loss}| avg_tr_f1: {temp_results["f1"]}'
+					f'Tr Iter: {step+1}| step_loss: {step_loss: .3f}| avg_tr_f1: {temp_results["f1"]: .3f}'
 				)
 
 	epoch_loss = eval_loss / len(dataloader)
@@ -405,6 +405,6 @@ def eval_epoch(
 		summary_writer.add_scaler("Precision_epoch/eval", results["precision"])
 		summary_writer.add_scaler("Recall_epoch/eval", results["recall"])
 
-	return epoch_loss, results
+	return results
 
 
