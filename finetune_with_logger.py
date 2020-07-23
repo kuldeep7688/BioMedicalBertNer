@@ -110,6 +110,24 @@ def train_ner_model(
             pad_idx=bert_tokenizer.pad_token_id,
             num_labels=len(labels)
         )   
+    elif model_config_dict["model_type"] == "token_classification":
+        model = BertForTokenClassification.from_pretrained(
+            model_config_dict["bert_model_path"],
+            config=bert_config,
+            num_labels=len(labels),
+            classification_layer_sizes=model_config_dict["classification_layer_sizes"]
+        )
+    elif  model_config_dict["model_type"] == "lstm_crf":
+        model = BertLstmCrf.from_pretrained(
+            model_config_dict["bert_model_path"],
+            config=bert_config,
+            num_labels=len(labels),
+            pad_idx=bert_tokenizer.pad_token_id,
+            lstm_hidden_dim=model_config_dict["lstm_hidden_dim"],
+            num_lstm_layers=model_config_dict["num_lstm_layers"],
+            bidirectional=model_config_dict["bidirectional"]
+        )
+
     logger.info("{} model loaded successfully.".format(model_config_dict["model_type"]))
 
     # checking whether to finetune or not

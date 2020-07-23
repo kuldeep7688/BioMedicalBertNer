@@ -393,7 +393,7 @@ def eval_epoch(
                     eval_loss / (step + 1), label_map, preds, out_label_ids, give_lists=False
                 )
                 epoch_iterator.set_description(
-                    f'Eval Iter: {step+1}| step_loss: {step_loss: .3f}| avg_tr_f1: {temp_results["f1"]: .3f}'
+                    f'Eval Iter: {step+1}| step_loss: {step_loss: .3f}| avg_ev_f1: {temp_results["f1"]: .3f}'
                 )
 
     epoch_loss = eval_loss / len(dataloader)
