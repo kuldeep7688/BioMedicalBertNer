@@ -11,7 +11,7 @@
     "bidirectional": true,
     "train_batch_size": 16,
     "validation_batch_size": 32,
-    "num_epochs": 3,
+    "num_epochs": 1,
     "finetune": true,
     "learning_rate": 5e-5,
     "epsilon": 1e-8,

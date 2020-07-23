@@ -408,3 +408,6 @@ def eval_epoch(
     return results
 
 
+# below functions are helpful in Inferencing
+
+def convert_sentences_to_features()

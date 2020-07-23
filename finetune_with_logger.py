@@ -25,7 +25,7 @@ print("Device Being used as {} \n".format(DEVICE))
 
 
 def train_ner_model(
-    model_config_path, data_dir, model_saving_dir=None,
+    model_config_path, data_dir,
     logger_file_dir=None, labels_file=None
 ):
     # loading model config path
@@ -37,10 +37,10 @@ def train_ner_model(
         print("model_config_path doesn't exist.")
         sys.exit()
 
-    if os.path.exists(model_saving_dir):
-        output_model_file = model_saving_dir + "pytorch_model.bin"
-        output_config_file = model_saving_dir + "bert_config.json"
-        output_vocab_file = model_saving_dir + "vocab.txt"
+    if os.path.exists(model_config_dict["final_model_saving_dir"]):
+        output_model_file = model_config_dict["final_model_saving_dir"] + "pytorch_model.bin"
+        output_config_file = model_config_dict["final_model_saving_dir"] + "bert_config.json"
+        output_vocab_file = model_config_dict["final_model_saving_dir"] + "vocab.txt"
     else:
         print("model_saving_dir doesn't exist.")
         sys.exit()

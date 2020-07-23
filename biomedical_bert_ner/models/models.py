@@ -169,11 +169,18 @@ class BertLstmCrf(BertModel):
 
         self.bert = BertModel(config)
 
-        self.lstm = nn.LSTM(
-            input_size=config.hidden_size, hidden_size=self.lstm_hidden_dim,
-            num_layers=self.num_lstm_layers, bidirectional=self.bidirectional,
-            dropout=self.dropout_prob, batch_first=True
-        )
+        if self.num_lstm_layers > 1:
+            self.lstm = nn.LSTM(
+                input_size=config.hidden_size, hidden_size=self.lstm_hidden_dim,
+                num_layers=self.num_lstm_layers, bidirectional=self.bidirectional,
+                dropout=self.dropout_prob, batch_first=True
+            )
+        else:
+            self.lstm = nn.LSTM(
+                input_size=config.hidden_size, hidden_size=self.lstm_hidden_dim,
+                num_layers=self.num_lstm_layers, bidirectional=self.bidirectional,
+                batch_first=True
+            )
         if self.bidirectional is True:
             self.linear = nn.Linear(self.lstm_hidden_dim*2, self.num_labels)
         else:
