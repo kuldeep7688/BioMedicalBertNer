@@ -6,18 +6,19 @@ from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data import TensorDataset
 from seqeval.metrics import precision_score, recall_score, f1_score
 from tqdm import tqdm
-import multiprocessing
-from functools import partial
-# from seqeval.metrics import classification_report
 
+
+def _is_whitespace(c):
+    if c == " " or c == "\t" or c == "\r" or c == "\n" or ord(c) == 0x202F:
+        return True
+    return False
 
 class InputExample(object):
     """
     A single training/test example.
     """
-    def __init__(self, guid, words, labels):
+    def __init__(self, guid, words=None, labels=None, sentence=None):
         """Contructs a InputExample object.
-        
         Args:
             guid (TYPE): unique id for the example
             words (TYPE): the words of the sequence
@@ -26,17 +27,40 @@ class InputExample(object):
         self.guid = guid
         self.words = words
         self.labels = labels
+        self.sentence = sentence
+
+        if self.words is None and self.sentence:
+            doc_tokens = []
+            char_to_word_offset = []
+            prev_is_whitespace = True
+            # split sentence on whitepsace so that different tokens may be attributed to their original positions
+            for c in self.sentence:
+                if _is_whitespace(c):
+                    prev_is_whitespace = True
+                else:
+                    if prev_is_whitespace:
+                        doc_tokens.append(c)
+                    else:
+                        doc_tokens[-1] += c
+                    prev_is_whitespace = False
+                char_to_word_offset.append(len(doc_tokens) - 1)
+
+            self.words = doc_tokens
+            if self.labels is None:
+                self.labels = ["O"]*len(self.words)
 
 
 class InputFeatures(object):
     """
     A sigle set of input features for an example.
     """
-    def __init__(self, input_ids, input_mask, segment_ids, label_ids):
+    def __init__(self, input_ids, input_mask, segment_ids, label_ids=None, token_to_orig_index=None, orig_to_token_index=None):
         self.input_ids = input_ids
         self.input_mask = input_mask
         self.segment_ids = segment_ids
         self.label_ids = label_ids
+        self.token_to_orig_index = token_to_orig_index
+        self.orig_to_token_index = orig_to_token_index
 
 
 def read_examples_from_file(data_dir, mode):
@@ -100,12 +124,14 @@ def convert_examples_to_features(
     """
     Prepare features to be given as input to Bert
     """
-
     features = []
     for (ex_index, example) in enumerate(examples):
         tokens = []
         label_ids = []
-        for word, label in zip(example.words, example.labels):
+        token_to_orig_index = []
+        orig_to_token_index = []
+        for word_idx, (word, label) in enumerate(zip(example.words, example.labels)):
+            orig_to_token_index.append(len(tokens))
             word_tokens = tokenizer.tokenize(word)
             if len(word_tokens) > 0:
                 tokens.extend(word_tokens)
@@ -115,6 +141,8 @@ def convert_examples_to_features(
                     [label_map[label]] + [label_map[get_i_label(label, label_map)]]
                     * (len(word_tokens) - 1)
                 )
+            for tok in word_tokens:
+                token_to_orig_index.append(word_idx)
 
         special_tokens_count = 2 # for bert cls sentence sep
         if len(tokens) > max_seq_length - special_tokens_count:
@@ -168,7 +196,9 @@ def convert_examples_to_features(
                 input_ids=input_ids,
                 input_mask=input_mask,
                 segment_ids=segment_ids,
-                label_ids=label_ids
+                label_ids=label_ids,
+                token_to_orig_index=token_to_orig_index,
+                orig_to_token_index=orig_to_token_index
             )
         )
 
@@ -189,14 +219,25 @@ def get_labels(path):
 
 def load_and_cache_examples(
     max_seq_length, tokenizer, label_map, pad_token_label_id,
-    mode, data_dir=None, logger=None,
-    summary_writer=None, examples=None
+    mode, data_dir=None, logger=None, summary_writer=None,
+    sentence_list=None, return_features_and_examples=False
 ):
     "Loads data features from cache or dataset file"
 
-    if data_dir:
-        print("Creating features from dataset file at {}".format(data_dir))
-        examples = read_examples_from_file(data_dir, mode)
+    if sentence_list is None:
+        if data_dir:
+            print("Creating features from dataset file at {}".format(data_dir))
+            examples = read_examples_from_file(data_dir, mode)
+    else:
+        # will mainly be used in
+        examples = []
+        for idx, sentence in enumerate(sentence_list):
+            examples.append(
+                InputExample(
+                    guid=idx, words=None, labels=None, sentence=sentence
+                )
+            )
+
 
 
     features = convert_examples_to_features(
@@ -226,8 +267,10 @@ def load_and_cache_examples(
     dataset = TensorDataset(
         all_input_ids, all_input_mask, all_segment_ids, all_label_ids
     )
-
-    return dataset
+    if return_features_and_examples:
+        return dataset, examples, features
+    else:
+        return dataset
 
 
 def count_parameters(model):
@@ -354,7 +397,6 @@ def eval_epoch(
     summary_writer=None, give_lists=False
 ):
     eval_loss = 0.0
-
     preds = None
     out_label_ids = None
 
@@ -409,5 +451,63 @@ def eval_epoch(
 
 
 # below functions are helpful in Inferencing
+def predictions_from_model(model, tokenizer, dataset, batch_size, label2idx, device):
+    pred_logits = None
+    input_ids_list = None
+    model.eval()
+    sampler = SequentialSampler(dataset)
+    dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size)
+    epoch_iterator = tqdm(dataloader, total=len(dataloader))
+    with torch.no_grad():
+        for step, batch in enumerate(epoch_iterator):
+            batch = tuple(t.to(device) for t in batch)
+            inputs = {
+                "input_ids": batch[0],
+                "attention_mask": batch[1],
+                "token_type_ids": batch[2],
+                "labels": None
+            }
+            # getting outputs
+            logits, _, _ = model(**inputs)
 
-def convert_sentences_to_features()
+            # appending predictions and labels to list
+            if pred_logits is None:
+                pred_logits = logits.detach().cpu().numpy()
+                input_ids_list = inputs["input_ids"][:, 1:].detach().cpu().numpy()
+            else:
+                pred_logits = np.append(pred_logits, logits.detach().cpu().numpy(), axis=0)
+                input_ids_list = np.append(
+                    input_ids_list,
+                    inputs["input_ids"][:, 1:].detach().cpu().numpy(),
+                    axis=0
+                )
+
+    idx2label = {i: label for label, i in label2idx.items()}
+    prediction_labels  = []
+    for sentence_label_logits, sentence_input_ids in zip(pred_logits, input_ids_list):
+        temp = []
+        for i, (p, w) in enumerate(zip(sentence_label_logits, sentence_input_ids)):
+            if w == tokenizer.sep_token_id:
+                break
+            temp.append(idx2label[p])
+        prediction_labels.append(temp)
+    return prediction_labels
+
+
+def align_predicted_labels_with_original_sentence_tokens(predicted_labels, examples, features, max_seq_length, num_special_tokens):
+    """The label_predictions out of the model is according to the tokens (that we get after tokenizing every word using tokenizer).
+    We need to align the predictions with the original words of the sentence.
+    """
+    aligned_predicted_labels = []
+    for idx, (feature, p_l_s) in enumerate(zip(features, predicted_labels)):
+#         print(idx)
+        temp = []
+        for i in range(len(feature.orig_to_token_index)):
+            token_idx = feature.orig_to_token_index[i]
+            if token_idx + 1 < (max_seq_length - num_special_tokens):
+                temp.append(p_l_s[token_idx])
+            else:
+                temp.append("O")
+        aligned_predicted_labels.append(temp)
+
+    return aligned_predicted_labels, [ex.labels for ex in examples]

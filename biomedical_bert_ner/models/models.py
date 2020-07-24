@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 from transformers import BertModel
 from torchcrf import CRF
 
@@ -14,7 +13,7 @@ class BertCrfForNER(BertModel):
     """
     def __init__(self, config, pad_idx, num_labels):
         """Inititalization
-        
+
         Args:
             config (TYPE): model config flie (similar to bert_config.json)
             num_labels : total number of layers using the bio format
@@ -33,7 +32,7 @@ class BertCrfForNER(BertModel):
 
     def create_mask_for_crf(self, inp):
         """Creates a mask for the feesing to crf layer.
-        
+
         Args:
             inp (TYPE): input given to bert layer
         """
@@ -41,13 +40,13 @@ class BertCrfForNER(BertModel):
         # mask = [seq_len, batch_size]
 
         return mask
-    
+
     def forward(
         self, input_ids, attention_mask=None, token_type_ids=None,
         position_ids=None, head_mask=None, labels=None
     ):
         """Forwar propagate.
-        
+
         Args:
             input_ids (TYPE): bert input ids
             attention_mask (None, optional): attention mask for bert
@@ -107,7 +106,7 @@ class BertForTokenClassification(BertModel):
             nn.Linear(inp, out)
             for inp, out in zip(self.input_layer_sizes, self.output_layer_size)
         )
-        self.num_linear_layer = len(classification_layer_sizes) + 1 
+        self.num_linear_layer = len(classification_layer_sizes) + 1
         self.init_weights()
 
     def forward(
@@ -193,7 +192,7 @@ class BertLstmCrf(BertModel):
 
     def create_mask_for_crf(self, inp):
         """Creates a mask for the feesing to crf layer.
-        
+
         Args:
             inp (TYPE): input given to bert layer
         """
@@ -227,8 +226,11 @@ class BertLstmCrf(BertModel):
         # creating mask for crf
         mask = self.create_mask_for_crf(input_ids)
 
-        # crf part 
-        loss = self.crf_layer(logits, labels, mask=mask) * torch.tensor(-1, device=self.device)
+        # crf part
+        if labels is not None:
+            loss = self.crf_layer(logits, labels, mask=mask) * torch.tensor(-1, device=self.device)
+        else:
+            loss = None
 
         out = self.crf_layer.decode(logits)
         out = torch.tensor(out, dtype=torch.long, device=self.device)

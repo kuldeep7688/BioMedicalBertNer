@@ -4,10 +4,12 @@ import logging
 import fire
 import sys
 
-import torch 
+import torch
 import torch.nn as nn
 
 from biomedical_bert_ner.utils.utilities import train_epoch, eval_epoch
+from biomedical_bert_ner.utils.utilities import predictions_from_model
+from biomedical_bert_ner.utils.utilities import align_predicted_labels_with_original_sentence_tokens
 from biomedical_bert_ner.utils.utilities import load_and_cache_examples
 from biomedical_bert_ner.utils.utilities import get_labels, count_parameters
 
@@ -67,14 +69,14 @@ def train_ner_model(
         logger.info("{} == {}".format(key, val))
 
     logger.info("Started training model :::::::::::::::::::::")
-    
+
     bert_config = BertConfig.from_json_file(model_config_dict["bert_config_path"])
     bert_tokenizer = BertTokenizer.from_pretrained(
         model_config_dict["bert_vocab_path"],
         config=bert_config,
         do_lower_case=model_config_dict["tokenizer_do_lower_case"]
     )
-    # saving confgi and tokenizer 
+    # saving confgi and tokenizer
     bert_tokenizer.save_vocabulary(output_vocab_file)
     bert_config.to_json_file(output_config_file)
 
@@ -85,7 +87,7 @@ def train_ner_model(
 
     # preparing training data
     train_dataset = load_and_cache_examples(
-        data_dir=data_dir, 
+        data_dir=data_dir,
         max_seq_length=model_config_dict["max_seq_length"],
         tokenizer=bert_tokenizer,
         label_map=label2idx,
@@ -94,7 +96,7 @@ def train_ner_model(
     )
     # preparing eval data
     eval_dataset = load_and_cache_examples(
-        data_dir=data_dir, 
+        data_dir=data_dir,
         max_seq_length=model_config_dict["max_seq_length"],
         tokenizer=bert_tokenizer,
         label_map=label2idx,
@@ -109,7 +111,7 @@ def train_ner_model(
             config=bert_config,
             pad_idx=bert_tokenizer.pad_token_id,
             num_labels=len(labels)
-        )   
+        )
     elif model_config_dict["model_type"] == "token_classification":
         model = BertForTokenClassification.from_pretrained(
             model_config_dict["bert_model_path"],
@@ -210,32 +212,30 @@ def train_ner_model(
     model.load_state_dict(torch.load(output_model_file))
     logger.info("Loaded best model successfully.")
 
-    test_dataset = load_and_cache_examples(
-        data_dir=data_dir, 
+    test_dataset, test_examples, test_features = load_and_cache_examples(
+        data_dir=data_dir,
         max_seq_length=model_config_dict["max_seq_length"],
         tokenizer=bert_tokenizer,
         label_map=label2idx,
         pad_token_label_id=label2idx["<PAD>"],
-        mode="test", logger=logger
+        mode="test", logger=logger,
+        return_features_and_examples=True
     )
     logger.info("Test data loaded successfully.")
 
-    test_result = eval_epoch(
-        model=model, dataset=eval_dataset,
+    test_label_predictions = predictions_from_model(
+        model=model, tokenizer=bert_tokenizer,
+        dataset=test_dataset,
         batch_size=model_config_dict["validation_batch_size"],
-        label_map=label2idx, device=DEVICE,
-        give_lists=True
+        label2idx=label2idx, device=DEVICE
+    )
+    # restructure test_label_predictions with real labels
+    aligned_predicted_labels, true_labels = align_predicted_labels_with_original_sentence_tokens(
+        test_label_predictions, test_examples, test_features, max_seq_length=model_config_dict["max_seq_length"],
+        num_special_tokens=model_config_dict["num_special_tokens"]
     )
     print("Test Results classification report...")
-    print(classification_report(test_result["out_label_list"], test_result["preds_list"]))
-    logger.info("Results on test data are: {}".format(
-            {
-                key: val
-                for key, val in test_result.items()
-                if key not in ["out_label_list", "preds_list"]
-            }
-        )
-    )
+    print(classification_report(true_labels, aligned_predicted_labels))
     return
 
 
