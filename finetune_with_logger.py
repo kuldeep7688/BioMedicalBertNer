@@ -5,8 +5,6 @@ import fire
 import sys
 
 import torch
-import torch.nn as nn
-
 from biomedical_bert_ner.utils.utilities import train_epoch, eval_epoch
 from biomedical_bert_ner.utils.utilities import predictions_from_model
 from biomedical_bert_ner.utils.utilities import align_predicted_labels_with_original_sentence_tokens

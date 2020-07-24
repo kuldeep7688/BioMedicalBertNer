@@ -511,3 +511,58 @@ def align_predicted_labels_with_original_sentence_tokens(predicted_labels, examp
         aligned_predicted_labels.append(temp)
 
     return aligned_predicted_labels, [ex.labels for ex in examples]
+
+
+def convert_to_ents(tokens, tags):
+    start_offset = None
+    end_offset = None
+    ent_type = None
+
+    text = " ".join(tokens)
+    entities = []
+    start_char_offset = 0
+    for offset, (token, tag) in enumerate(zip(tokens, tags)):
+        token_tag = tag
+        if token_tag == "O":
+            if ent_type is not None and start_offset is not None:
+                end_offset = offset - 1
+                entity = {
+                    "type": ent_type,
+                    "entity": " ".join(tokens[start_offset: end_offset + 1]),
+                    "start_offset": start_char_offset,
+                    "end_offset": start_char_offset + len(" ".join(tokens[start_offset: end_offset + 1]))
+                }
+                entities.append(entity)
+                start_char_offset += len(" ".join(tokens[start_offset: end_offset + 2])) + 1
+                start_offset = None
+                end_offset = None
+                ent_type = None
+            else:
+                start_char_offset += len(tokens) + 1
+        elif ent_type is None:
+            ent_type = token_tag[2:]
+            start_offset = offset
+        elif ent_type != token_tag[2:]:
+            end_offset = offset - 1
+            entity = {
+                "type": ent_type,
+                "entity": " ".join(tokens[start_offset: end_offset + 1]),
+                "start_offset": start_char_offset,
+                "end_offset": start_char_offset + len(" ".join(tokens[start_offset: end_offset + 1]))
+            }
+            entities.append(entity)
+            # start of a new entity
+            ent_type = token_tag[2:]
+            start_offset = offset
+            end_offset = None
+
+    # catches an entity that foes up untill the last token
+    if ent_type and start_offset is not None and end_offset is not None:
+        entity = {
+            "type": ent_type,
+            "entity": " ".join(tokens[start_offset:]),
+            "start_offset": start_char_offset,
+            "end_offset": start_char_offset + len(" ".join(tokens[start_offset:]))
+        }
+        entities.append(entity)
+    return text, entities
