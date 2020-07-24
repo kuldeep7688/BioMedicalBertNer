@@ -1,5 +1,4 @@
 import os
-import re
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
@@ -137,7 +136,7 @@ def convert_examples_to_features(
                 tokens.extend(word_tokens)
                 # USe the real label id for the first token of the word, and
                 # propagate I-tag for the splitted tokens
-                # # TODO: Check the working of this function
+                # TODO: Check the working of this function
                 label_ids.extend(
                     [label_map[label]] + [label_map[get_i_label(label, label_map)]]
                     * (len(word_tokens) - 1)
@@ -495,7 +494,7 @@ def predictions_from_model(model, tokenizer, dataset, batch_size, label2idx, dev
     return prediction_labels
 
 
-# # TODO: Check whether this is working correctly
+# TODO: Check whether this is working correctly
 def align_predicted_labels_with_original_sentence_tokens(predicted_labels, examples, features, max_seq_length, num_special_tokens):
     """The label_predictions out of the model is according to the tokens (that we get after tokenizing every word using tokenizer).
     We need to align the predictions with the original words of the sentence.
