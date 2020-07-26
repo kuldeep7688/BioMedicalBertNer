@@ -21,7 +21,7 @@ python finettune_with_logger.py
 | JNLPBA        | Bert-CRF      |      -         |
 |            | Bert-TokenClassification |   -        |
 |               | Bert-LSTM-CRF      |    -          |
-| NCBI-Disease      | Bert-CRF | $1600 |
+| NCBI-Disease      | Bert-CRF |  |
 |       | Bert-TokenClassification     |   - |
 |  | Bert-LSTM-CRF      |    - |
 | BC5CDR        | Bert-CRF      |      -         |
