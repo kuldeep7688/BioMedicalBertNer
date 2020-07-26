@@ -62,7 +62,7 @@ class InputFeatures(object):
         self.orig_to_token_index = orig_to_token_index
 
 
-def read_examples_from_file(data_dir, mode):
+def read_examples_from_file(data_dir, mode, line_splitter="\t"):
     file_path = os.path.join(data_dir, "{}.txt".format(mode))
     guid_index = 1
     examples = []
@@ -83,7 +83,7 @@ def read_examples_from_file(data_dir, mode):
                     words = []
                     labels = []
             else:
-                splits = line.split("\t")
+                splits = line.split(line_splitter)
                 words.append(splits[0])
                 if len(splits) > 1:
                     labels.append(splits[-1].replace("\n", ""))
