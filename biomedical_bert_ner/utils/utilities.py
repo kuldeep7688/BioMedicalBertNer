@@ -136,7 +136,6 @@ def convert_examples_to_features(
                 tokens.extend(word_tokens)
                 # USe the real label id for the first token of the word, and
                 # propagate I-tag for the splitted tokens
-                # TODO: Check the working of this function
                 label_ids.extend(
                     [label_map[label]] + [label_map[get_i_label(label, label_map)]]
                     * (len(word_tokens) - 1)
@@ -494,18 +493,17 @@ def predictions_from_model(model, tokenizer, dataset, batch_size, label2idx, dev
     return prediction_labels
 
 
-# TODO: Check whether this is working correctly
 def align_predicted_labels_with_original_sentence_tokens(predicted_labels, examples, features, max_seq_length, num_special_tokens):
     """The label_predictions out of the model is according to the tokens (that we get after tokenizing every word using tokenizer).
     We need to align the predictions with the original words of the sentence.
     """
     aligned_predicted_labels = []
     for idx, (feature, p_l_s) in enumerate(zip(features, predicted_labels)):
-#         print(idx)
+        # print(idx)
         temp = []
         for i in range(len(feature.orig_to_token_index)):
             token_idx = feature.orig_to_token_index[i]
-            if token_idx + 1 < (max_seq_length - num_special_tokens):
+            if token_idx < (max_seq_length - num_special_tokens):
                 temp.append(p_l_s[token_idx])
             else:
                 temp.append("O")
@@ -513,7 +511,7 @@ def align_predicted_labels_with_original_sentence_tokens(predicted_labels, examp
 
     return aligned_predicted_labels, [ex.labels for ex in examples]
 
-# TODO: Check whether this is working correctly
+
 def convert_to_ents(tokens, tags):
     start_offset = None
     end_offset = None

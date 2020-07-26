@@ -145,6 +145,8 @@ class BertForTokenClassification(BertModel):
                 loss = loss_fct(active_logits, active_labels)
             else:
                 loss =loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+        else:
+            loss = None
 
         softs, out = torch.max(logits, axis=2)
         return out, labels, loss

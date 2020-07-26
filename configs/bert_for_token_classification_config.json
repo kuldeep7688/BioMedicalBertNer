@@ -9,7 +9,7 @@
     "classification_layer_sizes": [100, 50],
     "train_batch_size": 16,
     "validation_batch_size": 32,
-    "num_epochs": 3,
+    "num_epochs": 10,
     "finetune": true,
     "num_special_tokens": 2,
     "learning_rate": 5e-5,
