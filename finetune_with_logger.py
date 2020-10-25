@@ -24,25 +24,7 @@ print("Device Being used as {} \n".format(DEVICE))
 
 
 
-def train_ner_model(
-    model_config_path, data_dir,
-    logger_file_dir=None, labels_file=None
-):
-    # loading model config path
-    if os.path.exists(model_config_path):
-        with open(model_config_path, "r", encoding="utf-8") as reader:
-            text = reader.read()
-        model_config_dict = json.loads(text)
-    else:
-        print("model_config_path doesn't exist.")
-        sys.exit()
-
-    if os.path.exists(model_config_dict["final_model_saving_dir"]):
-        output_model_file = model_config_dict["final_model_saving_dir"] + "pytorch_model.bin"
-        output_config_file = model_config_dict["final_model_saving_dir"] + "bert_config.json"
-        output_vocab_file = model_config_dict["final_model_saving_dir"] + "vocab.txt"
-    else:
-        print("model_saving_dir doesn't exist.")
+rint("model_saving_dir doesn't exist.")
         sys.exit()
 
     if os.path.exists(logger_file_dir):
@@ -78,7 +60,7 @@ def train_ner_model(
     bert_tokenizer.save_vocabulary(output_vocab_file)
     bert_config.to_json_file(output_config_file)
 
-    labels = get_labels(labels_file) + ["<PAD>"]
+    labels = get_labels(labels_file)
     logger.info("Labels for Ner are: {}".format(labels))
 
     label2idx = {l: i for i, l in enumerate(labels)}
@@ -89,7 +71,7 @@ def train_ner_model(
         max_seq_length=model_config_dict["max_seq_length"],
         tokenizer=bert_tokenizer,
         label_map=label2idx,
-        pad_token_label_id=label2idx["<PAD>"],
+        pad_token_label_id=label2idx["O"],
         mode="train", logger=logger
     )
     # preparing eval data
@@ -98,7 +80,7 @@ def train_ner_model(
         max_seq_length=model_config_dict["max_seq_length"],
         tokenizer=bert_tokenizer,
         label_map=label2idx,
-        pad_token_label_id=label2idx["<PAD>"],
+        pad_token_label_id=label2idx["O"],
         mode="dev", logger=logger
     )
     logger.info("Training data and eval data loaded successfully.")
@@ -108,24 +90,8 @@ def train_ner_model(
             model_config_dict["bert_model_path"],
             config=bert_config,
             pad_idx=bert_tokenizer.pad_token_id,
+            sep_idx=bert_tokenizer.sep_token_id,
             num_labels=len(labels)
-        )
-    elif model_config_dict["model_type"] == "token_classification":
-        model = BertForTokenClassification.from_pretrained(
-            model_config_dict["bert_model_path"],
-            config=bert_config,
-            num_labels=len(labels),
-            classification_layer_sizes=model_config_dict["classification_layer_sizes"]
-        )
-    elif  model_config_dict["model_type"] == "lstm_crf":
-        model = BertLstmCrf.from_pretrained(
-            model_config_dict["bert_model_path"],
-            config=bert_config,
-            num_labels=len(labels),
-            pad_idx=bert_tokenizer.pad_token_id,
-            lstm_hidden_dim=model_config_dict["lstm_hidden_dim"],
-            num_lstm_layers=model_config_dict["num_lstm_layers"],
-            bidirectional=model_config_dict["bidirectional"]
         )
 
     logger.info("{} model loaded successfully.".format(model_config_dict["model_type"]))
@@ -182,12 +148,13 @@ def train_ner_model(
             batch_size=model_config_dict["train_batch_size"],
             label_map=label2idx,
             max_grad_norm=model_config_dict["max_grad_norm"],
-            optimizer=optimizer, scheduler=scheduler, device=DEVICE
+            optimizer=optimizer, scheduler=scheduler, device=DEVICE,
+            sep_token_id=bert_tokenizer.sep_token_id
         )
         eval_result = eval_epoch(
             model=model, dataset=eval_dataset,
             batch_size=model_config_dict["validation_batch_size"],
-            label_map=label2idx, device=DEVICE,
+            label_map=label2idx, device=DEVICE, sep_token_id=bert_tokenizer.sep_token_id,
             give_lists=False
         )
         print(f'Epoch: {epoch + 1}')
@@ -215,7 +182,7 @@ def train_ner_model(
         max_seq_length=model_config_dict["max_seq_length"],
         tokenizer=bert_tokenizer,
         label_map=label2idx,
-        pad_token_label_id=label2idx["<PAD>"],
+        pad_token_label_id=label2idx["O"],
         mode="test", logger=logger,
         return_features_and_examples=True
     )
@@ -235,7 +202,6 @@ def train_ner_model(
     print("Test Results classification report...")
     print(classification_report(true_labels, aligned_predicted_labels))
     return
-
 
 if __name__ == "__main__":
     fire.Fire(train_ner_model)

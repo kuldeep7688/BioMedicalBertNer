@@ -60,7 +60,7 @@ class NERTagger:
             config=self.bert_config,
             do_lower_case=self.model_config_dict["tokenizer_do_lower_case"]
         )
-        self.labels = get_labels(self.labels_file) + ["<PAD>"]
+        self.labels = get_labels(self.labels_file)
         self.label2idx = {l: i for i, l in enumerate(self.labels)}
 
 
@@ -69,6 +69,7 @@ class NERTagger:
                 self.model_file,
                 config=self.bert_config,
                 pad_idx=self.bert_tokenizer.pad_token_id,
+                sep_idx=self.bert_tokenizer.sep_token_id,
                 num_labels=len(self.labels)
             )
         elif self.model_config_dict["model_type"] == "token_classification":
@@ -96,7 +97,7 @@ class NERTagger:
             max_seq_length=self.model_config_dict["max_seq_length"],
             tokenizer=self.bert_tokenizer,
             label_map=self.label2idx,
-            pad_token_label_id=self.label2idx["<PAD>"],
+            pad_token_label_id=self.label2idx["O"],
             mode="inference", data_dir=None,
             logger=logger, sentence_list=sentence_list,
             return_features_and_examples=True
@@ -133,7 +134,12 @@ if __name__ == "__main__":
         "To investigate whether the tumor expression of beta-2-microglobulin ( beta 2-M ) could serve as a marker of tumor biologic behavior , the authors studied specimens of breast carcinomas from 60 consecutive female patients .",
         "Presence of beta 2-M was analyzed by immunohistochemistry .",
         "I love data science",
-        "Humira showed better results than Cimzia for treating psoriasis ."
+        "Humira showed better results than Cimzia for treating psoriasis .",
+        "Important advancements in the treatment of non - small cell lung cancer (NSCLC) have been achieved over the past two decades, increasing our understanding of the disease biology and mechanisms of tumour progression, and advancing early detection and multimodal care .",
+        "The use of small molecule tyrosine kinase inhibitors and immunotherapy has led to unprecedented survival benefits in selected patients .",
+        "However, the overall cure and survival rates for NSCLC remain low, particularly in metastatic disease .",
+        "Therefore, continued research into new drugs and combination therapies is required to expand the clinical benefit to a broader patient population and to improve outcomes in NSCLC .",
+        "The non-small cell lung cancer immune contexture. A major determinant of tumor characteristics and patient outcome ."
     ]
 
     tagger = NERTagger(

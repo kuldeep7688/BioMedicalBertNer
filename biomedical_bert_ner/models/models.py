@@ -11,7 +11,7 @@ class BertCrfForNER(BertModel):
     This class inherits functionality from huggingface BertModel.
     It applies a crf layer on the Bert outputs.
     """
-    def __init__(self, config, pad_idx, num_labels):
+    def __init__(self, config, pad_idx, sep_idx, num_labels):
         """Inititalization
 
         Args:
@@ -23,6 +23,7 @@ class BertCrfForNER(BertModel):
         super(BertCrfForNER, self).__init__(config)
         self.num_labels = num_labels
         self.pad_idx = pad_idx
+        self.sep_idx = sep_idx
 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -31,12 +32,13 @@ class BertCrfForNER(BertModel):
         self.init_weights()
 
     def create_mask_for_crf(self, inp):
-        """Creates a mask for the feesing to crf layer.
-
+        """Creates a mask for the feeding to crf layer.
+           Mask <PAD> and <SEP> token positions
         Args:
             inp (TYPE): input given to bert layer
         """
-        mask = inp != self.pad_idx
+
+        mask = (inp != self.pad_idx) & (inp != self.sep_idx)
         # mask = [seq_len, batch_size]
 
         return mask
@@ -198,7 +200,7 @@ class BertLstmCrf(BertModel):
         Args:
             inp (TYPE): input given to bert layer
         """
-        mask = inp != self.pad_idx
+        mask = (inp != self.pad_idx) & (inp != self.sep_idx)
         # mask = [seq_len, batch_size]
 
         return mask

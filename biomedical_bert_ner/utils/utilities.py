@@ -148,7 +148,6 @@ def convert_examples_to_features(
             tokens = tokens[:(max_seq_length - special_tokens_count)]
             label_ids = label_ids[:(max_seq_length - special_tokens_count)]
 
-
         tokens += [tokenizer.sep_token]
         label_ids += [pad_token_label_id]
         segment_ids = [0]*len(tokens)
@@ -281,16 +280,16 @@ def count_parameters(model):
 
 
 def get_result_matrix(
-    loss, label_map, predictions_tensor,
-    labels_tensor, give_lists=False
+    loss, label_map, predictions_tensor, sentence_input_ids,
+    labels_tensor, sep_token_id, give_lists=False
 ):
     """
     Get the results given predictions and labels
     """
-    label_to_not_consider_in_results = [
-        idx for label, idx in label_map.items()
-        if label in ["<PAD>", "<EOS>"]
-    ]
+#     label_to_not_consider_in_results = [
+#         idx for label, idx in label_map.items()
+#         if label in ["O"]
+#     ]
     label2idx = {i: label for label, i in label_map.items()}
 
     out_label_list = [[] for _ in range(labels_tensor.shape[0])]
@@ -298,9 +297,10 @@ def get_result_matrix(
 
     for i in range(labels_tensor.shape[0]):
         for j in range(labels_tensor.shape[1]):
-            if labels_tensor[i, j] not in label_to_not_consider_in_results:
-                out_label_list[i].append(label2idx[labels_tensor[i][j]])
-                preds_list[i].append(label2idx[predictions_tensor[i][j]])
+            if sentence_input_ids[i, j] == sep_token_id:
+                break
+            out_label_list[i].append(label2idx[labels_tensor[i][j]])
+            preds_list[i].append(label2idx[predictions_tensor[i][j]])
 
     if give_lists:
         results = {
@@ -325,12 +325,13 @@ def get_result_matrix(
 
 def train_epoch(
     model, dataset, batch_size, label_map, max_grad_norm,
-    optimizer, scheduler, device, summary_writer=None
+    optimizer, scheduler, device, sep_token_id, summary_writer=None
 ):
     tr_loss = 0.0
 
-    preds = None
-    out_label_ids = None
+    preds = []
+    out_label_ids = []
+    input_ids_list = []
 
     model.train()
     sampler = RandomSampler(dataset)
@@ -365,23 +366,36 @@ def train_epoch(
 
         # appending predictions and labels to list
         # for calculation of result
-        if preds is None:
-            preds = logits.detach().cpu().numpy()
-            out_label_ids = inputs["labels"].detach().cpu().numpy()
-        else:
-            preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
-            out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
+#         if preds is None:
+        preds.append(logits.detach().cpu().numpy())
+        out_label_ids.append(inputs["labels"].detach().cpu().numpy())
+        input_ids_list.append(inputs["input_ids"][:, 1:].detach().cpu().numpy())
+#         else:
+#             preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
+#             out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
+#             input_ids_list = np.append(
+#                     input_ids_list,
+#                     inputs["input_ids"][:, 1:].detach().cpu().numpy(),
+#                     axis=0
+#                 )
 
         if step % print_stats_at_step == 0:
-            temp_results = get_result_matrix(
-                tr_loss / (step + 1), label_map, preds, out_label_ids, give_lists=False
-            )
+#             temp_results = get_result_matrix(
+#                     tr_loss / (step + 1), label_map, preds, input_ids_list,
+#                     out_label_ids, sep_token_id, give_lists=False
+#                 )
             epoch_iterator.set_description(
-                f'Tr Iter: {step+1}| step_loss: {step_loss: .3f}| avg_tr_f1: {temp_results["f1"]: .3f}'
+                f'Tr Iter: {step+1}| step_loss: {step_loss: .3f}' #| avg_tr_f1: {temp_results["f1"]: .3f}'
             )
 
+    preds = np.vstack(preds)
+    input_ids_list = np.vstack(input_ids_list)
+    out_label_ids = np.vstack(out_label_ids)
     epoch_loss = tr_loss / len(dataloader)
-    results = get_result_matrix(epoch_loss, label_map, preds, out_label_ids)
+    results = get_result_matrix(
+        epoch_loss, label_map, preds, input_ids_list,
+        out_label_ids, sep_token_id, give_lists=False
+    )
 
     if summary_writer:
         summary_writer.add_scaler("F1_epoch/train", results["f1"])
@@ -392,12 +406,13 @@ def train_epoch(
 
 
 def eval_epoch(
-    model, dataset, batch_size, label_map, device,
+    model, dataset, batch_size, label_map, device, sep_token_id,
     summary_writer=None, give_lists=False
 ):
     eval_loss = 0.0
-    preds = None
-    out_label_ids = None
+    preds = []
+    out_label_ids = []
+    input_ids_list = []
 
     model.eval()
     sampler = SequentialSampler(dataset)
@@ -422,23 +437,35 @@ def eval_epoch(
 
             # appending predictions and labels to list
             # for calculation of result
-            if preds is None:
-                preds = logits.detach().cpu().numpy()
-                out_label_ids = inputs["labels"].detach().cpu().numpy()
-            else:
-                preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
-                out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
+#             if preds is None:
+            preds.append(logits.detach().cpu().numpy())
+            out_label_ids.append(inputs["labels"].detach().cpu().numpy())
+            input_ids_list.append(inputs["input_ids"][:, 1:].detach().cpu().numpy())
+#             else:
+#                 preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
+#                 out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
+#                 input_ids_list = np.append(
+#                     input_ids_list,
+#                     inputs["input_ids"][:, 1:].detach().cpu().numpy(),
+#                     axis=0
+#                 )
 
             if step % print_stats_at_step == 0:
-                temp_results = get_result_matrix(
-                    eval_loss / (step + 1), label_map, preds, out_label_ids, give_lists=False
-                )
+#                 temp_results = get_result_matrix(
+#                     eval_loss / (step + 1), label_map, preds, input_ids_list,
+#                     out_label_ids, sep_token_id, give_lists=False
+#                 )
                 epoch_iterator.set_description(
-                    f'Eval Iter: {step+1}| step_loss: {step_loss: .3f}| avg_ev_f1: {temp_results["f1"]: .3f}'
+                    f'Eval Iter: {step+1}| step_loss: {step_loss: .3f}'
                 )
-
+    preds = np.vstack(preds)
+    input_ids_list = np.vstack(input_ids_list)
+    out_label_ids = np.vstack(out_label_ids)
     epoch_loss = eval_loss / len(dataloader)
-    results = get_result_matrix(epoch_loss, label_map, preds, out_label_ids, give_lists=give_lists)
+    results = get_result_matrix(
+        eval_loss / (step + 1), label_map, preds, input_ids_list,
+        out_label_ids, sep_token_id, give_lists=False
+    )
 
     if summary_writer:
         summary_writer.add_scaler("Loss/eval", epoch_loss)
@@ -537,7 +564,7 @@ def convert_to_ents(tokens, tags):
                 end_offset = None
                 ent_type = None
             else:
-                start_char_offset += len(tokens) + 1
+                start_char_offset += len(token) + 1
         elif ent_type is None:
             ent_type = token_tag[2:]
             start_offset = offset
