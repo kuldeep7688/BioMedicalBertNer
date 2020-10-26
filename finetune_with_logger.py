@@ -24,7 +24,25 @@ print("Device Being used as {} \n".format(DEVICE))
 
 
 
-rint("model_saving_dir doesn't exist.")
+def train_ner_model(
+    model_config_path, data_dir,
+    logger_file_dir=None, labels_file=None
+):
+    # loading model config path
+    if os.path.exists(model_config_path):
+        with open(model_config_path, "r", encoding="utf-8") as reader:
+            text = reader.read()
+        model_config_dict = json.loads(text)
+    else:
+        print("model_config_path doesn't exist.")
+        sys.exit()
+
+    if os.path.exists(model_config_dict["final_model_saving_dir"]):
+        output_model_file = model_config_dict["final_model_saving_dir"] + "pytorch_model.bin"
+        output_config_file = model_config_dict["final_model_saving_dir"] + "bert_config.json"
+        output_vocab_file = model_config_dict["final_model_saving_dir"] + "vocab.txt"
+    else:
+        print("model_saving_dir doesn't exist.")
         sys.exit()
 
     if os.path.exists(logger_file_dir):
@@ -201,7 +219,8 @@ rint("model_saving_dir doesn't exist.")
     )
     print("Test Results classification report...")
     print(classification_report(true_labels, aligned_predicted_labels))
-    return
+    return aligned_predicted_labels, true_labels
+
 
 if __name__ == "__main__":
     fire.Fire(train_ner_model)
