@@ -23,7 +23,7 @@ python finettune_with_logger.py
 |               | Bert-LSTM-CRF      |    -          |
 | NCBI-Disease      | Bert-CRF |  |
 |       | Bert-TokenClassification     |   - |
-|  | Bert-LSTM-CRF      |    - |
+|  | Bert-LSTM-CRF(no finetuning)      |    0.88 |
 | BC5CDR        | Bert-CRF      |      -         |
 |            | Bert-TokenClassification |   -        |
 |               | Bert-LSTM-CRF      |    -          |
