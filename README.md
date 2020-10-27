@@ -4,7 +4,7 @@
     - Finetuning script is compatible with the datasets provided by [Scibert git repo](https://github.com/allenai/scibert/tree/master/data/ner) data folder.
 
 ## Finetuning Steps
-    - add lables file to the data_dir; a labels file should have all the labels from the data, one label per line.
+    - add labels file to the data_dir; a labels file should have all the labels from the data, one label per line.
     - Edit the config file of your chosen architecture and save.
     - Execute the below command
 ```
