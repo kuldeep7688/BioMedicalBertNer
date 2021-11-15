@@ -15,7 +15,6 @@ atomicwrites==1.3.0
 attrs==19.3.0
 autopep8==1.4.4
 awscli==1.18.39
-Babel==2.8.0
 backcall==0.1.0
 backports.functools-lru-cache==1.6.1
 backports.shutil-get-terminal-size==1.0.0
@@ -24,7 +23,6 @@ backports.weakref==1.0.post1
 beautifulsoup4==4.8.2
 bitarray==1.2.1
 bkcharts==0.2
-bleach==3.1.4
 blinker==1.4
 blis==0.4.1
 bokeh==1.4.0
@@ -47,12 +45,10 @@ conda-package-handling==1.7.0
 conda-verify==3.4.2
 conllu==2.3.2
 contextlib2==0.6.0.post1
-cryptography==2.8
 cycler==0.10.0
 cymem==2.0.3
 Cython==0.29.15
 cytoolz==0.10.1
-dask==2.11.0
 de-core-news-sm==2.2.5
 decorator==4.4.1
 defusedxml==0.6.0
@@ -103,7 +99,6 @@ itsdangerous==1.1.0
 jdcal==1.4.1
 jedi==0.14.1
 jeepney==0.4.2
-Jinja2==2.11.1
 jmespath==0.9.5
 joblib==0.14.1
 json5==0.9.1
@@ -125,7 +120,6 @@ libarchive-c==2.8
 lief==0.9.0
 llvmlite==0.31.0
 locket==0.2.0
-lxml==4.5.0
 Markdown==3.2.2
 MarkupSafe==1.1.1
 matplotlib==3.1.3
@@ -144,10 +138,8 @@ navigator-updater==0.2.1
 nbconvert==5.6.1
 nbformat==5.0.4
 networkx==2.4
-nltk==3.4.5
 nmslib==2.0.5
 nose==1.3.7
-notebook==6.0.3
 numba==0.48.0
 numexpr==2.7.1
 numpy==1.18.1
@@ -168,7 +160,6 @@ patsy==0.5.1
 pep8==1.7.1
 pexpect==4.8.0
 pickleshare==0.7.5
-Pillow==7.1.0
 pkginfo==1.5.0.1
 plac==1.1.3
 pluggy==0.13.1
@@ -214,7 +205,6 @@ pytz==2019.3
 pyusb==1.0.2
 PyWavelets==1.1.1
 pyxdg==0.26
-PyYAML==5.3
 pyzmq==18.1.1
 QDarkStyle==2.8
 QtAwesome==0.6.1
@@ -224,7 +214,6 @@ regex==2020.4.4
 requests==2.22.0
 requests-oauthlib==1.3.0
 rope==0.16.0
-rsa==4.0
 Rtree==0.9.3
 ruamel-yaml==0.15.87
 s3transfer==0.3.3
@@ -263,11 +252,6 @@ statsmodels==0.11.0
 sympy==1.5.1
 tables==3.6.1
 tblib==1.6.0
-tensorboard==2.2.2
-tensorboard-plugin-wit==1.7.0
-tensorflow==2.3.1
-tensorflow-estimator==2.2.0
-tensorflow-hub==0.7.0
 termcolor==1.1.0
 terminado==0.8.3
 testpath==0.4.4
